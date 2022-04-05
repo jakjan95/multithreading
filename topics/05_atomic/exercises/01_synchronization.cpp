@@ -6,12 +6,19 @@
 #include <iostream>
 using namespace std;
 
+
 vector<int> generateContainer() {
     vector<int> input = {2, 4, 6, 8, 10, 1, 3, 5, 7, 9};
     vector<int> output;
     vector<thread> threads;
+
+    std::mutex m;
+    auto addToOutput = [&](int index) {
+        std::lock_guard<std::mutex> lock(m);
+        output.push_back(input[index]); };
+
     for (auto i = 0u; i < input.size(); i++) {
-        threads.emplace_back([&]{ output.push_back(input[i]); });
+        threads.emplace_back(addToOutput, i);
     }
     for (auto && t : threads) {
         t.join();
@@ -19,21 +26,29 @@ vector<int> generateContainer() {
     return output;
 }
 
-vector<int> generateOtherContainer() {
-    int start = 5;
-    bool add = true;
+vector<int> generateOtherContainer()
+{
+    std::atomic<int> start = 5;
+    std::atomic<bool> add = true;
     vector<int> output;
     vector<thread> threads;
+    std::mutex m;
+
+    auto addToOutput = [&](int index) {
+        std::lock_guard<std::mutex> lock(m);
+        if (add.load()) {
+            output.push_back(start += index);
+        } else {
+            output.push_back(start -= index);
+        }
+        add = !add;
+    };
+
     for (int i = 0; i < 10; i++) {
-        threads.emplace_back([&]{
-            if (add)
-                output.push_back(start+=i);
-            else
-                output.push_back(start-=i);
-            add = !add;
-        });
+        threads.emplace_back(addToOutput, i);
     }
-    for (auto && t : threads) {
+
+    for (auto&& t : threads) {
         t.join();
     }
     return output;
@@ -41,6 +56,7 @@ vector<int> generateOtherContainer() {
 
 void powerContainer(vector<int>& input) {
     vector<thread> threads;
+
     for (auto i = 0u; i < input.size(); i++) {
         threads.emplace_back([&]{ input[i]*=input[i]; });
     }
@@ -50,8 +66,9 @@ void powerContainer(vector<int>& input) {
 }
 
 void printContainer(const vector<int>& c) {
-    for (const auto & value : c)
+    for (const auto & value : c){
         cout << value << " ";
+    }
     cout << endl;
 }
 
