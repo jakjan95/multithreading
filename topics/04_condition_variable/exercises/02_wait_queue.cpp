@@ -1,3 +1,4 @@
+#include <condition_variable>
 #include <iostream>
 #include <deque>
 #include <thread>
@@ -10,15 +11,19 @@ template <typename T>
 class WaitQueue {
     deque<T> queue_;
     mutable mutex m_;
-    using Lock = lock_guard<mutex>;
+    using Lock = unique_lock<mutex>;
+    std::condition_variable cv;
 
 public:
     void push(const T & element) {
         Lock l(m_);
         queue_.push_front(element);
+        cv.notify_all();
     }
     T pop() {
         Lock l(m_);
+        auto hasData = [&] { return !queue_.empty(); };
+        cv.wait(l, hasData);
         auto top = queue_.back();
         queue_.pop_back();
         return top;
@@ -27,6 +32,7 @@ public:
         Lock l(m_);
         return queue_.empty();
     }
+
 };
 
 using StringQueue = WaitQueue<string>;
@@ -40,7 +46,6 @@ void provideData(StringQueue & sq) {
 void saveToFile(StringQueue & sq) {
     ofstream file("/tmp/sth.txt");
     while (file) {
-        while (sq.empty()) { /* nop */ }
         file << sq.pop() << endl;
     }
 }
