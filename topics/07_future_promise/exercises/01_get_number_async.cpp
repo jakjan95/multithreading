@@ -1,4 +1,5 @@
 #include <future>
+#include <thread>
 
 int get_number()
 {
@@ -7,8 +8,15 @@ int get_number()
 
 std::future<int> get_number_async()
 {
-    // TODO: Your implementation goes here
-    return std::future<int>{};
+    std::promise<int> num;
+    auto f = num.get_future();
+
+    auto fun = [](std::promise<int> p) {
+        p.set_value(get_number());
+    };
+    std::thread t(fun, std::move(num));
+    t.detach();
+    return f;
 }
 
 int main()
@@ -16,4 +24,3 @@ int main()
     auto future = get_number_async();
     return future.get();
 }
-

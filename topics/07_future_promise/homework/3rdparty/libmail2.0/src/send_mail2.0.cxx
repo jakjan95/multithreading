@@ -1,5 +1,6 @@
 #include <chrono>
 #include <thread>
+#include <stdexcept>
 
 #include <libmail2.0/include/send_mail.h>
 
