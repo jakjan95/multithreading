@@ -7,16 +7,20 @@
 #include <fstream>
 using namespace std;
 
-template <typename T>
+template <typename T, int N = 5>
 class WaitQueue {
     deque<T> queue_;
     mutable mutex m_;
     condition_variable nonEmpty_;
+    condition_variable nonFull_;
+
     using Lock = unique_lock<mutex>;
 
 public:
     void push(const T & element) {
         Lock l(m_);
+        auto notFull = [&] { return queue_.size() < N; };
+        nonFull_.wait(l, notFull);
         queue_.push_front(element);
         nonEmpty_.notify_all();
     }
@@ -26,6 +30,7 @@ public:
         nonEmpty_.wait(l, hasData);
         auto top = queue_.back();
         queue_.pop_back();
+        nonFull_.notify_all();
         return top;
     }
 };
