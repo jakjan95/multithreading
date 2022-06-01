@@ -1,8 +1,11 @@
+#include <chrono>
+#include <mutex>
 #include <vector>
 #include <thread>
 #include <iostream>
 #include <sstream> 
 #include <random>
+
 
 using namespace std;
 
@@ -11,6 +14,7 @@ class Prize {
     std::random_device dev{};
     std::mt19937 rng{dev()};  
     std::uniform_int_distribution<int> dist{10, 50};
+    std::once_flag flag;
     
 public:
     void setWinner() {
@@ -19,8 +23,15 @@ public:
         stringstream msg;
         msg << "Called " << __FUNCTION__ << "(" << id << "). Chasing time: " << sleepDuration << "ms\n";
         cout << msg.str(); // single operation on stream is atomic
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleepDuration));
         
-        // TODO: set me as a winner, but don't let others overwrite this!
+        std::call_once(
+            flag, [&id, this]() {
+                stringstream ssId;
+                ssId << id;
+                winnerId = ssId.str();
+            });
     }
       
     void showWinner() {

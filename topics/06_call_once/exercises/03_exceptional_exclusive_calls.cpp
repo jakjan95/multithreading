@@ -34,15 +34,16 @@ class X {
             values = {1.0, 2.0, 3.0};
         });
     }
-  
-    void initializePierdyliard() {
+
+    void initializePierdyliard()
+    try {
         cout << __FUNCTION__ << '\n';
-        call_once(once, [&]{
+        call_once(once, [&] {
             cout << "Call once initializePierdyliard\n";
-            throw std::bad_alloc{};
+            throw std::bad_alloc {};
             // TODO: Can you fix me?
         });
-    }
+    } catch (...) {}
 
 public:
     explicit X(int i) noexcept {
