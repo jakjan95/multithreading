@@ -4,10 +4,12 @@
 #include <future>
 #include <mutex>
 #include <iostream>
+#include <thread>
 
 class ActiveObject
 {
     std::unique_ptr<Object> object_;
+    std::mutex m_;
 
 public:
     ActiveObject(std::unique_ptr<Object> obj)
@@ -16,13 +18,21 @@ public:
 
     std::future<void> push([[maybe_unused]] const int value)
     {
-        // TODO: Run push() on object_ asynchronously, print this_thread::get_id(), return a future
-        return {};
+        auto pushFun = [&](const int val) {
+            std::lock_guard lg(m_);
+            std::cout << std::this_thread::get_id() << '\n';
+            return object_->push(val);
+        };
+        return std::async(std::launch::async, pushFun, value);
     }
 
     std::future<int> pop()
     {
-        // TODO: Run pop() on object_ asynchronously, print this_thread::get_id(), return a future
-        return {};
+        auto popFun = [&] {
+            std::lock_guard lg(m_);
+            std::cout << std::this_thread::get_id() << '\n';
+            return object_->pop();
+        };
+        return std::async(std::launch::async, popFun);
     }
 };
